@@ -2,74 +2,100 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 
-class OldPhone
+public class OldPhone
 {
-    // Converts an input string simulating an old phone keypad into the resulting text
-    public static string mapStringToOldPhone(string x)
+    // Key to letters mapping
+    private static readonly Dictionary<char, string> KeypadMapping = new Dictionary<char, string>
     {
-        StringBuilder s = new StringBuilder(); // Final output
-        int a = 0; // Position index for the input string
+        {'1', "&'("}, {'2', "ABC"}, {'3', "DEF"},
+        {'4', "GHI"}, {'5', "JKL"}, {'6', "MNO"},
+        {'7', "PQRS"}, {'8', "TUV"},{'9', "WXYZ"},
+        {'0', " "}
+    };
 
-        // Mapping each keypad digit to its corresponding letters
-        Dictionary<char, string> d = new Dictionary<char, string>();
-        d.Add('1', "&'(");
-        d.Add('2', "ABC");
-        d.Add('3', "DEF");
-        d.Add('4', "GHI");
-        d.Add('5', "JKL");
-        d.Add('6', "MNO");
-        d.Add('7', "PQRS");
-        d.Add('8', "TUV");
-        d.Add('9', "WXYZ");
-        d.Add('0', " ");
+    // Converts old phone keypad input to text
+    public static string MapStringToOldPhone(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
 
-        // Loop through the input string Length
-        while (a < x.Length)
+        var result = new StringBuilder();
+        int position = 0;
+
+        while (position < input.Length)
         {
-            char c = x[a]; // get letter at position a
+            char currentChar = input[position];
 
-            // Stop processing at '#'
-            if (c == '#') break;
+            // Stop at '#'
+            if (currentChar == '#')
+                break;
 
-            // Handle backspace: remove the last character from the output
-            if (c == '*')
+            // Handle backspace: remove last character
+            if (currentChar == '*')
             {
-                if (s.Length > 0)
-                {
-                    s.Remove(s.Length - 1, 1);
-                }
-                a++;
+                if (result.Length > 0)
+                    result.Remove(result.Length - 1, 1);
+                position++;
                 continue;
             }
 
-            // Skip pauses (space separates repeated presses on same key)
-            if (c == ' ')
+            // Skip spaces
+            if (currentChar == ' ')
             {
-                a++;
+                position++;
                 continue;
             }
 
-            // Count how many times the same key is pressed consecutively
-            int b = a;
-            while (b + 1 < x.Length && x[b + 1] == c)
+            // Count consecutive same characters
+            int consecutiveCount = CountConsecutiveChars(input, position, currentChar);
+
+            // Process valid key
+            if (KeypadMapping.ContainsKey(currentChar))
             {
-                b++;
+                string letters = KeypadMapping[currentChar];
+                int letterIndex = (consecutiveCount - 1) % letters.Length;
+                result.Append(letters[letterIndex]);
             }
 
-            int e = b - a + 1; // Number of repeated key presses
-
-            // If the character is a valid key in the mapping
-            if (d.ContainsKey(c))
-            {
-                /* Get corresponding letters for the key Calculate letter index (cycles if over) Append the letter to the output */
-                string f = d[c];
-                int g = (e - 1) % f.Length;
-                s.Append(f[g]);
-            }
-
-            a = b + 1;
+            position += consecutiveCount;
         }
 
-        return s.ToString();
+        return result.ToString();
+    }
+
+    // Counts consecutive identical characters from a position
+    private static int CountConsecutiveChars(string input, int startPosition, char targetChar)
+    {
+        int count = 1;
+        int position = startPosition + 1;
+
+        while (position < input.Length && input[position] == targetChar)
+        {
+            count++;
+            position++;
+        }
+
+        return count;
+    }
+
+    // Test method to verify functionality
+    public static void TestMethod()
+    {
+        string[] testCases = {
+            "44 444",           // "HI"
+            "222 2 22",         // "CAB"  
+            "7777 666 2 7777",  // "SOAP"
+            "44 444*43",        // "HG" (with backspace)
+            "2*#",              // "" (backspace and termination)
+            "0 9 666 777 555 3" // " WORLD"
+        };
+
+        Console.WriteLine("Old phone tests:\n");
+
+        foreach (var test in testCases)
+        {
+            string result = MapStringToOldPhone(test);
+            Console.WriteLine($"Input: '{test}' → Output: '{result}'");
+        }
     }
 }
